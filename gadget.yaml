@@ -18,6 +18,9 @@ datasources:
       family:
         annotations:
           description: 'TODO: Fill field description'
+      fd:
+        annotations:
+          description: 'TODO: Fill field description'
       mntns_id:
         annotations:
           description: 'TODO: Fill field description'

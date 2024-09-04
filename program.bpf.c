@@ -24,6 +24,7 @@ struct event {
   char comm[TASK_COMM_LEN];
   gadget_syscall syscall_raw;
   struct gadget_l4endpoint_t address;
+  int fd;
 };
 
 GADGET_TRACER_MAP(events, 1024 * 256);
@@ -52,6 +53,7 @@ handle_network_event(struct trace_event_raw_sys_enter *ctx) {
                  sizeof(event->address.addr_raw.v4), &addrv4->sin_addr.s_addr);
   bpf_probe_read(&event->address.port, sizeof(event->address.port),
                  &addrv4->sin_port);
+  event->fd = (int)ctx->args[0];
   event->address.port = bpf_ntohs(event->address.port);
   event->address.version = 4;
   event->mntns_id = mntns_id;
