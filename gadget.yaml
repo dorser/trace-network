@@ -12,6 +12,9 @@ datasources:
       address:
         annotations:
           description: 'TODO: Fill field description'
+      address_family:
+        annotations:
+          description: 'TODO: Fill field description'
       comm:
         annotations:
           description: 'TODO: Fill field description'

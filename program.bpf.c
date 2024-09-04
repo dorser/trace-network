@@ -25,6 +25,7 @@ struct event {
   gadget_syscall syscall_raw;
   struct gadget_l4endpoint_t address;
   int fd;
+  u16 address_family;
 };
 
 GADGET_TRACER_MAP(events, 1024 * 256);
@@ -36,7 +37,8 @@ handle_network_event(struct trace_event_raw_sys_enter *ctx) {
   struct event *event;
   __u64 pid_tgid = bpf_get_current_pid_tgid();
   __u64 mntns_id;
-
+  struct sockaddr *uaddr = (struct sockaddr*)ctx->args[1];
+  
   mntns_id = gadget_get_mntns_id();
 
   if (gadget_should_discard_mntns_id(mntns_id))
@@ -46,9 +48,10 @@ handle_network_event(struct trace_event_raw_sys_enter *ctx) {
   if (!event)
     return 0;
 
-  struct sockaddr *addr = (struct sockaddr *)ctx->args[1];
-
-  struct sockaddr_in *addrv4 = (struct sockaddr_in *)addr;
+  u16 address_family = 0;
+  bpf_probe_read_user(&address_family, sizeof(address_family), &uaddr->sa_family);
+  event->address_family = address_family;
+  struct sockaddr_in *addrv4 = (struct sockaddr_in *)uaddr;
   bpf_probe_read(&event->address.addr_raw.v4,
                  sizeof(event->address.addr_raw.v4), &addrv4->sin_addr.s_addr);
   bpf_probe_read(&event->address.port, sizeof(event->address.port),
