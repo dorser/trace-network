@@ -20,18 +20,19 @@
 struct event {
   gadget_timestamp timestamp;
   gadget_mntns_id mntns_id;
-  __u32 pid;
+  pid_t pid;
   char comm[TASK_COMM_LEN];
-  char syscall[10];
-  struct gadget_l4endpoint_t addr;
+  gadget_syscall syscall_raw;
+  struct gadget_l4endpoint_t address;
 };
 
 GADGET_TRACER_MAP(events, 1024 * 256);
 
 GADGET_TRACER(network_tracer, events, event);
 
-static __always_inline int handle_network_event(const char *syscall, struct trace_event_raw_sys_enter *ctx) {
-    struct event *event;
+static __always_inline int
+handle_network_event(struct trace_event_raw_sys_enter *ctx) {
+  struct event *event;
   __u64 pid_tgid = bpf_get_current_pid_tgid();
   __u64 mntns_id;
 
@@ -44,17 +45,20 @@ static __always_inline int handle_network_event(const char *syscall, struct trac
   if (!event)
     return 0;
 
-  struct sockaddr_in *addr = (struct sockaddr_in *)ctx->args[1];
-  bpf_probe_read(&event->addr.addr_raw.v4, sizeof(event->addr.addr_raw.v4),
-                 &addr->sin_addr.s_addr);
-  bpf_probe_read(&event->addr.port, sizeof(event->addr.port), &addr->sin_port);
-  event->addr.port = bpf_ntohs(event->addr.port);
-  event->addr.version = 4;
+  struct sockaddr *addr = (struct sockaddr *)ctx->args[1];
+
+  struct sockaddr_in *addrv4 = (struct sockaddr_in *)addr;
+  bpf_probe_read(&event->address.addr_raw.v4,
+                 sizeof(event->address.addr_raw.v4), &addrv4->sin_addr.s_addr);
+  bpf_probe_read(&event->address.port, sizeof(event->address.port),
+                 &addrv4->sin_port);
+  event->address.port = bpf_ntohs(event->address.port);
+  event->address.version = 4;
   event->mntns_id = mntns_id;
   event->timestamp = bpf_ktime_get_boot_ns();
   event->mntns_id = gadget_get_mntns_id();
   event->pid = pid_tgid >> 32;
-  __builtin_strcpy(event->syscall, syscall);
+  event->syscall_raw = ctx->id;
   bpf_get_current_comm(&event->comm, sizeof(event->comm));
 
   /* emit event */
@@ -65,21 +69,17 @@ static __always_inline int handle_network_event(const char *syscall, struct trac
 
 SEC("tracepoint/syscalls/sys_enter_connect")
 int tracepoint__sys_enter_enter(struct trace_event_raw_sys_enter *ctx) {
-  const char *syscall = "connect"; 
-  return handle_network_event(syscall, ctx);
+  return handle_network_event(ctx);
 }
 
 SEC("tracepoint/syscalls/sys_enter_accept")
 int tracepoint__sys_enter_accept(struct trace_event_raw_sys_enter *ctx) {
-  const char *syscall = "accept"; 
-  return handle_network_event(syscall, ctx);
+  return handle_network_event(ctx);
 }
 
 SEC("tracepoint/syscalls/sys_enter_accept4")
 int tracepoint__sys_enter_accept4(struct trace_event_raw_sys_enter *ctx) {
-  const char *syscall = "accept"; 
-  return handle_network_event(syscall, ctx);
+  return handle_network_event(ctx);
 }
-
 
 char LICENSE[] SEC("license") = "GPL";

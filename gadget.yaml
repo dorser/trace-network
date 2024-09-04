@@ -9,7 +9,13 @@ datasources:
       addr:
         annotations:
           description: 'TODO: Fill field description'
+      address:
+        annotations:
+          description: 'TODO: Fill field description'
       comm:
+        annotations:
+          description: 'TODO: Fill field description'
+      family:
         annotations:
           description: 'TODO: Fill field description'
       mntns_id:
@@ -18,7 +24,13 @@ datasources:
       pid:
         annotations:
           description: 'TODO: Fill field description'
+      socket_family:
+        annotations:
+          description: 'TODO: Fill field description'
       syscall:
+        annotations:
+          description: 'TODO: Fill field description'
+      syscall_raw:
         annotations:
           description: 'TODO: Fill field description'
       timestamp:
